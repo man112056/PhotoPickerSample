@@ -8,11 +8,18 @@ import android.provider.OpenableColumns;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.google.gson.Gson;
+
+import java.io.IOException;
+import java.io.InputStream;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
+import okio.BufferedSink;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -23,9 +30,11 @@ public class FileUploadHelper {
 
     private final ApiService apiService;
     private final Context context;
+    private final InputStream inputStream;
 
-    public FileUploadHelper(Context context) {
+    public FileUploadHelper(Context context, InputStream inputStream) {
         this.context = context;
+        this.inputStream = inputStream;
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://api.escuelajs.co/api/v1/") //  test API
@@ -60,7 +69,7 @@ public class FileUploadHelper {
     private MultipartBody.Part prepareFilePart(Uri uri, String partName) {
         String mimeType = getMimeType(uri);
 
-        UriRequestBody requestBody = new UriRequestBody(context, uri, mimeType);
+    RequestBody requestBody = getRequestBody(inputStream, mimeType);
 
         String fileName = getFileName(uri);
         if (fileName == null) {
@@ -68,6 +77,29 @@ public class FileUploadHelper {
         }
 
         return MultipartBody.Part.createFormData(partName, fileName, requestBody);
+    }
+
+    private RequestBody getRequestBody(InputStream inputStream, String mimeType) {
+        RequestBody requestBody = new RequestBody() {
+            @Nullable
+            @Override
+            public MediaType contentType() {
+                return MediaType.parse(mimeType);
+            }
+
+            @Override
+            public void writeTo(@NonNull BufferedSink bufferedSink) throws IOException {
+                if (inputStream != null) {
+                    byte[] buffer = new byte[8*1024];
+                    int read;
+                    while ((read = inputStream.read(buffer)) != -1) {
+                        bufferedSink.write(buffer, 0, read);
+                    }
+                    inputStream.close();
+                }
+            }
+        };
+        return requestBody;
     }
 
     private String getMimeType(Uri uri) {
