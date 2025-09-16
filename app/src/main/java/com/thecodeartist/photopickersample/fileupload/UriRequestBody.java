@@ -13,6 +13,7 @@ import okhttp3.MediaType;
 import okhttp3.RequestBody;
 import okio.BufferedSink;
 
+// TODO not using anymore but this is working code to create request body of file from Uri
 class UriRequestBody extends RequestBody {
 
     private Context context;
