@@ -1,8 +1,12 @@
 package com.thecodeartist.photopickersample;
 
+import android.content.ContentResolver;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,12 +48,60 @@ public class PdfViewActivity extends AppCompatActivity {
 
             try {
                 inputStream = getContentResolver().openInputStream(uri);
-                FileUploadHelper helper = new FileUploadHelper(this, inputStream);
+                String fileName = getFileName(uri);
+                String mimeType = getMimeType(uri);
+                FileUploadHelper helper = new FileUploadHelper(inputStream, fileName, mimeType);
                 helper.uploadFileWithMeta(Uri.parse(strUri));
             } catch (Exception e) {
                 Log.d("Manish", "exception occured in content resolving: "+e.getMessage());
                 Toast.makeText(this, "exception occured in content resolving", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    // Get actual file name from Uri
+    private String getFileName(Uri uri) {
+        String result = null;
+        if ("content".equals(uri.getScheme())) {
+            Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+            try {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    result = cursor.getString(nameIndex);
+                }
+            } finally {
+                if (cursor != null) cursor.close();
+            }
+        }
+        if (result == null) {
+            result = uri.getLastPathSegment();
+        }
+        Log.d("Manish", "getFileName: "+result);
+        return result;
+    }
+
+    private String getMimeType(Uri uri) {
+        String mimeType = null;
+
+        // 1. Directly from ContentResolver
+        if (ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
+            mimeType = getContentResolver().getType(uri);
+        }
+
+        // 2. If still null, try from file extension
+        if (mimeType == null) {
+            String extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
+            if (extension != null) {
+                mimeType = MimeTypeMap.getSingleton()
+                        .getMimeTypeFromExtension(extension.toLowerCase());
+            }
+        }
+
+        // 3. Last fallback (only if nothing found)
+        if (mimeType == null) {
+            mimeType = "application/octet-stream";
+        }
+        Log.d("Manish", "getMimeType: " + mimeType);
+        return mimeType;
     }
 }

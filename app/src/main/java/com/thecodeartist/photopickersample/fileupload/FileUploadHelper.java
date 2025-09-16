@@ -1,12 +1,7 @@
 package com.thecodeartist.photopickersample.fileupload;
 
-import android.content.ContentResolver;
-import android.content.Context;
-import android.database.Cursor;
 import android.net.Uri;
-import android.provider.OpenableColumns;
 import android.util.Log;
-import android.webkit.MimeTypeMap;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -29,12 +24,14 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class FileUploadHelper {
 
     private final ApiService apiService;
-    private final Context context;
     private final InputStream inputStream;
+    private String fileName;
+    private String mimeType;
 
-    public FileUploadHelper(Context context, InputStream inputStream) {
-        this.context = context;
+    public FileUploadHelper( InputStream inputStream, String fileName, String mimeType) {
         this.inputStream = inputStream;
+        this.fileName = fileName;
+        this.mimeType = mimeType;
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl("https://api.escuelajs.co/api/v1/") //  test API
@@ -44,38 +41,14 @@ public class FileUploadHelper {
         apiService = retrofit.create(ApiService.class);
     }
 
-    // Get actual file name from Uri
-    private String getFileName(Uri uri) {
-        String result = null;
-        if ("content".equals(uri.getScheme())) {
-            Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
-            try {
-                if (cursor != null && cursor.moveToFirst()) {
-                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    result = cursor.getString(nameIndex);
-                }
-            } finally {
-                if (cursor != null) cursor.close();
-            }
-        }
-        if (result == null) {
-            result = uri.getLastPathSegment();
-        }
-        Log.d("Manish", "getFileName: "+result);
-        return result;
-    }
 
     // Prepare file part
-    private MultipartBody.Part prepareFilePart(Uri uri, String partName) {
-        String mimeType = getMimeType(uri);
+    private MultipartBody.Part prepareFilePart(String partName) {
 
-    RequestBody requestBody = getRequestBody(inputStream, mimeType);
-
-        String fileName = getFileName(uri);
+        RequestBody requestBody = getRequestBody(inputStream, mimeType);
         if (fileName == null) {
             fileName = "file_" + System.currentTimeMillis();
         }
-
         return MultipartBody.Part.createFormData(partName, fileName, requestBody);
     }
 
@@ -90,7 +63,7 @@ public class FileUploadHelper {
             @Override
             public void writeTo(@NonNull BufferedSink bufferedSink) throws IOException {
                 if (inputStream != null) {
-                    byte[] buffer = new byte[8*1024];
+                    byte[] buffer = new byte[8 * 1024];
                     int read;
                     while ((read = inputStream.read(buffer)) != -1) {
                         bufferedSink.write(buffer, 0, read);
@@ -102,30 +75,7 @@ public class FileUploadHelper {
         return requestBody;
     }
 
-    private String getMimeType(Uri uri) {
-        String mimeType = null;
 
-        // 1. Directly from ContentResolver
-        if (ContentResolver.SCHEME_CONTENT.equals(uri.getScheme())) {
-            mimeType = context.getContentResolver().getType(uri);
-        }
-
-        // 2. If still null, try from file extension
-        if (mimeType == null) {
-            String extension = MimeTypeMap.getFileExtensionFromUrl(uri.toString());
-            if (extension != null) {
-                mimeType = MimeTypeMap.getSingleton()
-                        .getMimeTypeFromExtension(extension.toLowerCase());
-            }
-        }
-
-        // 3. Last fallback (only if nothing found)
-        if (mimeType == null) {
-            mimeType = "application/octet-stream";
-        }
-        Log.d("Manish", "getMimeType: "+mimeType);
-        return mimeType;
-    }
 
 
     //  Upload method
@@ -136,15 +86,14 @@ public class FileUploadHelper {
         RequestBody metaPart = RequestBody.create(
                 json, MediaType.parse("application/json")
         );
-        Log.d("Manish", "metaPart: "+metaPart);
+        Log.d("Manish", "metaPart: " + metaPart);
 
         // 2. File part
-        MultipartBody.Part filePart = prepareFilePart(fileUri, "file");
+        MultipartBody.Part filePart = prepareFilePart("file");
 
         // 3. File name part
-        String actualFileName = getFileName(fileUri);
         RequestBody fileNamePart = RequestBody.create(
-                actualFileName, MediaType.parse("text/plain")
+                fileName, MediaType.parse("text/plain")
         );
 
         // 4. API call
