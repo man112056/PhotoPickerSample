@@ -38,19 +38,23 @@ public class PdfViewActivity extends AppCompatActivity {
             Uri uri = Uri.parse(strUri);
             Log.d("Manish", "strUri in PdfActivity: " + strUri);
             TextView textView = findViewById(R.id.textview);
-            textView.setText("Selected PDF URI:\n" + strUri);
 
             // convert uri to input stream
-            InputStream inputStream = null;
-
             try {
-                inputStream = getContentResolver().openInputStream(uri);
+                InputStream inputStream = UriUtils.getInputStream(this, uri);
                 // Get filename & MIME type
                 String fileName = UriUtils.getFileName(this, uri);
                 String mimeType = UriUtils.getMimeType(this, uri);
-
+                long fileSize = UriUtils.getFileSizeInKB(this, uri);
+                Log.d("Manish", "fileSize: "+fileSize);
                 FileUploadHelper helper = new FileUploadHelper(inputStream, fileName, mimeType);
-                helper.uploadFileWithMeta(Uri.parse(strUri));
+                 helper.uploadFileWithMeta();
+
+                 //TODO - as of now just displaying the details - no matter if upload is success or failure
+                textView.setText("Selected PDF URI:---\n" + strUri +
+                        "\n\nFile Name:--- " + fileName +
+                        "\nMIME Type: --- " + mimeType +
+                        "\nFile Size: ---" + fileSize + " KB");
             } catch (Exception e) {
                 Log.d("Manish", "exception occured in content resolving: "+e.getMessage());
                 Toast.makeText(this, "exception occured in content resolving", Toast.LENGTH_SHORT).show();

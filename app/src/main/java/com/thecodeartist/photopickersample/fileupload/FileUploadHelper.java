@@ -1,6 +1,5 @@
 package com.thecodeartist.photopickersample.fileupload;
 
-import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -75,17 +74,12 @@ public class FileUploadHelper {
         return requestBody;
     }
 
-
-
-
     //  Upload method
-    public void uploadFileWithMeta(Uri fileUri) {
+    public void uploadFileWithMeta() {
         // 1. Meta JSON
         MyModel model = new MyModel("101", "Test Title", "Some description");
         String json = new Gson().toJson(model);
-        RequestBody metaPart = RequestBody.create(
-                json, MediaType.parse("application/json")
-        );
+        RequestBody metaPart = RequestBody.create(json, MediaType.parse("application/json"));
         Log.d("Manish", "metaPart: " + metaPart);
 
         // 2. File part
@@ -112,6 +106,7 @@ public class FileUploadHelper {
             @Override
             public void onFailure(Call<UploadResponse> call, Throwable t) {
                 Log.e("Manish", "Failed: " + t.getMessage());
+
             }
         });
     }

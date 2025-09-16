@@ -73,4 +73,24 @@ public class UriUtils {
         Log.d("Manish", "getMimeType: " + mimeType);
         return mimeType;
     }
+
+    //  get file size in KB from Uri
+    public static long getFileSizeInKB(Context context, Uri uri) {
+        long sizeInBytes = -1;
+        if ("content".equals(uri.getScheme())) {
+            Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+            try {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int sizeIndex = cursor.getColumnIndex(OpenableColumns.SIZE);
+                    if (!cursor.isNull(sizeIndex)) {
+                        sizeInBytes = cursor.getLong(sizeIndex);
+                    }
+                }
+            } finally {
+                if (cursor != null) cursor.close();
+            }
+        }
+        if (sizeInBytes == -1) return -1;
+        return sizeInBytes / 1024; // convert to KB
+    }
 }
