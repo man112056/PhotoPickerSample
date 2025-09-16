@@ -1,4 +1,4 @@
-package com.thecodeartist.photopickersample;
+package com.thecodeartist.photopickersample.fileupload;
 
 class UploadResponse {
     public String location;

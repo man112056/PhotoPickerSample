@@ -1,4 +1,4 @@
-package com.thecodeartist.photopickersample;
+package com.thecodeartist.photopickersample.fileupload;
 
 class MyModel {
     String id;
